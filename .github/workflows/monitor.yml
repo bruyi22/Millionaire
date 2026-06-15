@@ -10,7 +10,12 @@ on:
     # EDT) o 14:30-21:00 UTC (invierno, EST). Corremos 13:00-20:59 UTC L-V; el
     # script descarta lo que quede fuera de 9:30-16:00 ET en cada caso.
     - cron: "*/10 13-20 * * 1-5"
-  workflow_dispatch: {}   # botón para lanzarlo a mano desde la pestaña "Actions"
+  workflow_dispatch:      # botón para lanzarlo a mano desde la pestaña "Actions"
+    inputs:
+      forzar:
+        description: "Prueba: enviar alerta AHORA (ignora horario de mercado)"
+        type: boolean
+        default: false
 
 # Necesario para que el job pueda commitear de vuelta el estado del monitor.
 permissions:
@@ -45,7 +50,15 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           PYTHONIOENCODING: utf-8
           PYTHONUTF8: "1"
-        run: python run_monitor.py tick
+        # Por defecto 'tick' (respeta horario). Si lanzas el workflow a mano con
+        # 'forzar' marcado, usa 'once': manda alerta de prueba ignorando horario.
+        run: |
+          if [ "${{ github.event.inputs.forzar }}" = "true" ]; then
+            echo "Modo PRUEBA forzada (once)."
+            python run_monitor.py once
+          else
+            python run_monitor.py tick
+          fi
 
       - name: Persistir el estado del monitor (commit de vuelta)
         run: |
