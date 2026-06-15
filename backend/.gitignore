@@ -1,0 +1,24 @@
+# Secretos
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Datos / cache
+*.log
+.cache/
+# Ignoramos data/ EXCEPTO el estado que el cron de GitHub Actions necesita
+# conservar entre ejecuciones (watchlist + estado del monitor). journal.json
+# (diario personal) queda fuera a propósito: el cron no lo usa.
+data/*
+!data/watchlist.json
+!data/monitor_state.json
+
+# OS
+.DS_Store
+Thumbs.db

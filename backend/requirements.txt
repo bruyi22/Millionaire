@@ -1,0 +1,17 @@
+# ====== Motor matemático + Telegram ======
+# Indicadores (RSI, MACD, SMA, ATR) se calculan con pandas puro en core/analysis.py,
+# por eso NO dependemos de pandas-ta (fue retirado de PyPI y rompia con numpy 2.x).
+# Asi el proyecto funciona con cualquier version moderna de numpy/pandas. Usa Python 3.12.
+#
+# 100% DETERMINISTA: ya NO usa OpenAI. Las señales (CALL/PUT/NO OPERAR) y las
+# alertas de Telegram salen de motores propios sin coste de API.
+
+yfinance>=0.2.40
+pandas>=2.0
+numpy>=1.26
+requests>=2.31
+python-dotenv>=1.0
+
+# Servidor + bucle de monitoreo
+fastapi>=0.110
+uvicorn>=0.29

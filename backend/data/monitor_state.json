@@ -1,0 +1,22 @@
+{
+  "KO": {
+    "signature": {
+      "trend": "Lateral",
+      "classification": "Media",
+      "rsi_zone": "neutral",
+      "macd_dir": "bajista",
+      "extended": true
+    },
+    "last_alert": 1780659796.5275986
+  },
+  "SOFI": {
+    "signature": "NO OPERAR",
+    "last_alert": 1781448823.2919562,
+    "intra_price": 16.58
+  },
+  "NVDA": {
+    "signature": "NO OPERAR",
+    "last_alert": 1781448824.8550973,
+    "intra_price": 205.13
+  }
+}
