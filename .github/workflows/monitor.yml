@@ -1,0 +1,61 @@
+name: Monitor de mercado (alertas Telegram)
+
+# Ejecuta un "tick" del monitor cada 10 min en horario bursátil y manda la señal
+# a Telegram si cambió. No necesita servidor encendido: corre en los runners de
+# GitHub. El propio script (is_market_open, en hora de Nueva York) filtra con
+# precisión 9:30-16:00 ET; el rango UTC de abajo solo acota para no malgastar.
+on:
+  schedule:
+    # GitHub usa UTC. El mercado (9:30-16:00 ET) cae en 13:30-20:00 UTC (verano,
+    # EDT) o 14:30-21:00 UTC (invierno, EST). Corremos 13:00-20:59 UTC L-V; el
+    # script descarta lo que quede fuera de 9:30-16:00 ET en cada caso.
+    - cron: "*/10 13-20 * * 1-5"
+  workflow_dispatch: {}   # botón para lanzarlo a mano desde la pestaña "Actions"
+
+# Necesario para que el job pueda commitear de vuelta el estado del monitor.
+permissions:
+  contents: write
+
+# Evita que dos ticks se solapen (uno tras otro, sin cancelar el que corre).
+concurrency:
+  group: monitor-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repo
+        uses: actions/checkout@v4
+
+      - name: Preparar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar dependencias
+        run: pip install -r backend/requirements.txt
+
+      - name: Ejecutar un tick del monitor
+        working-directory: backend
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PYTHONIOENCODING: utf-8
+          PYTHONUTF8: "1"
+        run: python run_monitor.py tick
+
+      - name: Persistir el estado del monitor (commit de vuelta)
+        run: |
+          if [ -n "$(git status --porcelain backend/data/monitor_state.json)" ]; then
+            git config user.name "millionaire-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add backend/data/monitor_state.json
+            git commit -m "chore: estado del monitor [skip ci]"
+            git pull --rebase --autostash
+            git push
+          else
+            echo "Sin cambios en el estado; nada que commitear."
+          fi
