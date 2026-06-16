@@ -11,12 +11,20 @@
   },
   "SOFI": {
     "signature": "NO OPERAR",
-    "last_alert": 1781448823.2919562,
-    "intra_price": 16.58
+    "last_alert": 1781569152.6538332,
+    "intra_price": 17.11,
+    "level_alerts": {
+      "r1": 1781569152.687053
+    }
   },
   "NVDA": {
     "signature": "NO OPERAR",
-    "last_alert": 1781448824.8550973,
-    "intra_price": 205.13
+    "last_alert": 1781569154.1388261,
+    "intra_price": 212.46,
+    "level_alerts": {
+      "r2": 1781569154.1816764,
+      "r1": 1781569154.1816764,
+      "pivot": 1781569154.1816764
+    }
   }
 }
