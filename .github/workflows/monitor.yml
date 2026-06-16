@@ -30,6 +30,13 @@ jobs:
   tick:
     runs-on: ubuntu-latest
     steps:
+      - name: Mantener despierto el backend en Render (cosquillas)
+        # El plan free de Render duerme tras ~15 min sin tráfico. Como este cron
+        # corre cada 10 min en horario de mercado, este ping lo mantiene caliente
+        # para que el panel web abra instantáneo durante la sesión. `|| true`: un
+        # arranque en frío lento no debe tumbar el job.
+        run: curl -s -m 90 https://millionaire-api-vnis.onrender.com/ > /dev/null || true
+
       - name: Descargar el repo
         uses: actions/checkout@v4
 
