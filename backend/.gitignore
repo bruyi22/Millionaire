@@ -13,11 +13,13 @@ env/
 *.log
 .cache/
 # Ignoramos data/ EXCEPTO el estado que el cron de GitHub Actions necesita
-# conservar entre ejecuciones (watchlist + estado del monitor). journal.json
-# (diario personal) queda fuera a propósito: el cron no lo usa.
+# conservar entre ejecuciones (watchlist + estado del monitor + registro de
+# señales para medir aciertos). journal.json (diario personal) queda fuera a
+# propósito: el cron no lo usa.
 data/*
 !data/watchlist.json
 !data/monitor_state.json
+!data/signals_log.json
 
 # OS
 .DS_Store

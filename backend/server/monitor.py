@@ -21,6 +21,7 @@ from core.intraday import intraday_data
 from core.market_regime import market_regime
 from core.signal import decision_signal
 from core.telegram_bot import format_level_alert, format_signal_alert, send_message
+from server.signals_log import record_signal
 from server.watchlist import get_watchlist
 
 STATE_FILE = Path(__file__).resolve().parent.parent / "data" / "monitor_state.json"
@@ -186,6 +187,11 @@ def check_once(force: bool = False) -> None:
                 entry["signature"] = new_sig
                 entry["last_alert"] = time.time()
                 print(f"     ✅ Alerta enviada ({new_sig}, conf {sig['confidence']}%).")
+                # Anota la señal buena (CALL/PUT con plan) para medir aciertos
+                # luego. Las NO OPERAR no se registran (record_signal las ignora).
+                rec = record_signal(sig)
+                if rec:
+                    print(f"     📝 Registrada para seguimiento (id {rec['id']}).")
             except Exception as exc:  # noqa: BLE001
                 print(f"     ❌ No se pudo alertar: {exc}")
         elif changed and not elapsed_ok:
