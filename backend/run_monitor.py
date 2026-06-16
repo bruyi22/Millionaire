@@ -50,6 +50,19 @@ def main() -> None:
             print("⏸️  Tick: mercado cerrado, no hago nada.")
         return
 
+    if arg == "review":
+        # Verifica las señales abiertas (acierto/fallo target-vs-stop). Pensado
+        # para un cron diario tras el cierre. No depende del horario de mercado.
+        from server.signals_log import review_open_signals
+
+        print("🔎 Revisando señales abiertas (track record)…\n")
+        res = review_open_signals()
+        print(f"   Resueltas esta pasada: {res['revisadas']} → {res['detalle']}")
+        s = res["stats"]
+        wr = f"{s['win_rate']}%" if s["win_rate"] is not None else "—"
+        print(f"   Acumulado: {s['cerradas']} cerradas, {s['aciertos']} aciertos, win-rate {wr}.")
+        return
+
     interval = int(os.getenv("CHECK_INTERVAL_SECONDS", "300"))
     run_loop(interval)
 

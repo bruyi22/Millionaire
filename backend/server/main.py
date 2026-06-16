@@ -31,7 +31,7 @@ from core.opening import opening_analysis  # noqa: E402
 from core.options import option_chain_analysis  # noqa: E402
 from core.ranking import opportunity_ranking  # noqa: E402
 from core.signal import decision_signal  # noqa: E402
-from server import journal, watchlist  # noqa: E402
+from server import journal, signals_log, watchlist  # noqa: E402
 
 app = FastAPI(title="Millionaire API", version="0.3.0")
 
@@ -242,3 +242,20 @@ def update_journal_outcome(entry_id: str, body: OutcomeIn):
 @app.delete("/journal/{entry_id}")
 def delete_journal_entry(entry_id: str):
     return journal.delete_entry(entry_id)
+
+
+# --------------------------------------------------------------------------- #
+#  Track record de señales automáticas (anota el monitor, verifica el cron)
+# --------------------------------------------------------------------------- #
+@app.get("/signals-log")
+def signals_log_list():
+    """Registro de señales CALL/PUT enviadas y su resultado (acierto/fallo).
+    GRATIS, solo lectura. No ejecuta órdenes."""
+    return {"stats": signals_log.stats(), "signals": signals_log.get_log()}
+
+
+@app.post("/signals-log/review")
+def signals_log_review():
+    """Verifica las señales abiertas (target1 vs stop) y persiste resultados.
+    Pensado para un cron diario; también disparable a mano. Solo lectura de mercado."""
+    return signals_log.review_open_signals()
