@@ -1,0 +1,21 @@
+# Blueprint de Render (Infraestructura como código).
+# Despliega el backend FastAPI (API de análisis) como servicio web gratuito.
+# Render lo lee solo al crear un "Blueprint" apuntando a este repo.
+#
+# NOTA: este servicio es SOLO la API de lectura (análisis/señales). NO necesita
+# los secrets de Telegram (esas alertas las manda el cron de GitHub Actions).
+# El plan free "duerme" tras ~15 min sin tráfico; el cron lo mantiene despierto
+# en horario de mercado (ver workflow de GitHub).
+services:
+  - type: web
+    name: millionaire-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
