@@ -27,10 +27,12 @@ from core.intraday import intraday_data
 from core.market_regime import MARKET_TZ, market_regime
 from core.opening import opening_analysis
 
-# Umbrales del veredicto.
-MIN_AGREEMENT = 0.40   # por debajo => factores contradictorios => NO OPERAR
-MIN_CONFIDENCE = 50    # confianza mínima para dar señal
-MIN_RR = 1.0           # R:R mínimo para que compense (sino NO OPERAR)
+# Umbrales del veredicto. Subidos (jun-2026) para priorizar CERTEZA sobre cantidad:
+# menos señales, pero cada una con mayoría real de factores y recompensa que de
+# verdad compensa el theta/spread de las opciones.
+MIN_AGREEMENT = 0.50   # <0.50 => no hay mayoría clara (casi moneda al aire) => NO OPERAR
+MIN_CONFIDENCE = 55    # confianza mínima para dar señal (corta las "tibias")
+MIN_RR = 1.5           # objetivo >= 1.5x el riesgo; por debajo el premio no paga el riesgo
 
 # Proximidad de la ENTRADA al precio actual, medida en múltiplos de ATR.
 # Operar una entrada que está a >1 ATR del precio = "perseguir" un movimiento ya
@@ -102,6 +104,28 @@ def _session_window(now: datetime | None = None) -> dict:
         "session_factor": factor,
         "et_time": now.strftime("%H:%M"),
     }
+
+
+def _overextension(rsi: float, direction: str) -> dict:
+    """Penaliza ENTRAR EN AGOTAMIENTO: comprar un CALL con RSI ya muy alto (o un
+    PUT con RSI muy bajo) es subirse a un movimiento maduro al que le queda poca
+    pólvora y mucho riesgo de reversión.
+
+    `factor` (0-1) escala la confianza sin vetar (degrada, como proximidad/hora).
+    Solo castiga el extremo a FAVOR de la señal; un RSI alto en un PUT no penaliza
+    (ahí el agotamiento juega a tu favor).
+    """
+    if direction == "CALL":
+        if rsi >= 80:
+            return {"overext_state": "agotado", "overext_label": f"🔴 RSI {rsi} (sobrecompra extrema)", "overext_factor": 0.6}
+        if rsi >= 75:
+            return {"overext_state": "estirado", "overext_label": f"🟡 RSI {rsi} (sobrecompra)", "overext_factor": 0.8}
+    elif direction == "PUT":
+        if rsi <= 20:
+            return {"overext_state": "agotado", "overext_label": f"🔴 RSI {rsi} (sobreventa extrema)", "overext_factor": 0.6}
+        if rsi <= 25:
+            return {"overext_state": "estirado", "overext_label": f"🟡 RSI {rsi} (sobreventa)", "overext_factor": 0.8}
+    return {"overext_state": "ok", "overext_label": f"🟢 RSI {rsi} (sin extremo)", "overext_factor": 1.0}
 
 
 def _round(v, n=2):
@@ -287,18 +311,25 @@ def decision_signal(ticker: str, regime: dict | None = None) -> dict:
             )
             plan = None
         else:
-            # Penaliza la confianza por distancia de entrada Y por hora del día
-            # (mediodía = chop). Ninguno veta por sí solo; degradan y, si la
-            # confianza cae bajo el mínimo, entonces NO OPERAR.
-            adj = prox["proximity_factor"] * session["session_factor"]
+            # Penaliza la confianza por TRES factores que degradan (ninguno veta
+            # solo): distancia de entrada, hora del día (mediodía = chop) y
+            # sobre-extensión del RSI (no entrar en agotamiento). Si la confianza
+            # cae bajo el mínimo, entonces NO OPERAR citando la causa dominante.
+            oe = _overextension(a.rsi, direction)
+            plan.update(oe)
+            adj = prox["proximity_factor"] * session["session_factor"] * oe["overext_factor"]
             confidence = max(0, min(95, round(confidence * adj)))
             if confidence < MIN_CONFIDENCE:
                 signal = "NO OPERAR"
-                causa = (
-                    prox["proximity_label"]
-                    if prox["proximity_factor"] <= session["session_factor"]
-                    else session["session_label"]
-                )
+                # La causa es el factor con el peor (menor) multiplicador.
+                causa = min(
+                    (
+                        (prox["proximity_factor"], prox["proximity_label"]),
+                        (session["session_factor"], session["session_label"]),
+                        (oe["overext_factor"], oe["overext_label"]),
+                    ),
+                    key=lambda t: t[0],
+                )[1]
                 veto = (
                     f"Confianza insuficiente tras ajustes ({confidence}%): {causa}."
                 )
