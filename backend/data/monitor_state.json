@@ -12,24 +12,24 @@
   "SOFI": {
     "signature": "NO OPERAR",
     "last_alert": 1781569152.6538332,
-    "intra_price": 18.53,
+    "intra_price": 18.15,
     "level_alerts": {
-      "r1": 1781714144.521779,
+      "r1": 1781723483.492953,
       "r2": 1781632865.4078112,
       "pivot": 1781632865.4078112
     },
-    "playbook_action": "ESPERAR RUPTURA"
+    "playbook_action": "SIN SETUP"
   },
   "NVDA": {
     "signature": "NO OPERAR",
     "last_alert": 1781569154.1388261,
-    "intra_price": 207.48,
+    "intra_price": 205.63,
     "level_alerts": {
       "r2": 1781569154.1816764,
       "r1": 1781569154.1816764,
       "pivot": 1781714145.336627,
-      "s1": 1781632867.7091746
+      "s1": 1781723484.3723989
     },
-    "playbook_action": "ESPERAR RUPTURA"
+    "playbook_action": "SIN SETUP"
   }
 }
