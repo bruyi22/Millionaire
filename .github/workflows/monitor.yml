@@ -9,7 +9,10 @@ on:
     # GitHub usa UTC. El mercado (9:30-16:00 ET) cae en 13:30-20:00 UTC (verano,
     # EDT) o 14:30-21:00 UTC (invierno, EST). Corremos 13:00-20:59 UTC L-V; el
     # script descarta lo que quede fuera de 9:30-16:00 ET en cada caso.
-    - cron: "*/10 13-20 * * 1-5"
+    # Repo PÚBLICO => minutos de Actions ilimitados, así que vamos cada 3 min
+    # (en vez de 10) para reaccionar antes. El programador de GitHub igual tiene
+    # algo de jitter; el atraso del feed (~15 min) sigue siendo el piso real.
+    - cron: "*/3 13-20 * * 1-5"
   workflow_dispatch:      # botón para lanzarlo a mano desde la pestaña "Actions"
     inputs:
       forzar:
