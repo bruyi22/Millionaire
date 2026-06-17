@@ -29,6 +29,7 @@ from core.journal_stats import journal_stats  # noqa: E402
 from core.market_regime import market_regime  # noqa: E402
 from core.opening import opening_analysis  # noqa: E402
 from core.options import option_chain_analysis  # noqa: E402
+from core.playbook import intraday_playbook  # noqa: E402
 from core.ranking import opportunity_ranking  # noqa: E402
 from core.signal import decision_signal  # noqa: E402
 from server import journal, signals_log, watchlist  # noqa: E402
@@ -124,6 +125,17 @@ def signal(ticker: str):
     """Señal estructurada CALL/PUT/NO OPERAR (motor de confluencias). GRATIS."""
     try:
         return decision_signal(ticker)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/playbook/{ticker}")
+def playbook(ticker: str):
+    """Playbook INTRADÍA de momentum (5 min): VWAP, EMAs, MACD/RSI intradía,
+    volumen y ruptura/reclaim. Veredicto para mirar EN VIVO desde el panel.
+    GRATIS, sin IA. Solo lectura — no ejecuta órdenes."""
+    try:
+        return intraday_playbook(ticker)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
