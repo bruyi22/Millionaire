@@ -55,9 +55,12 @@ def format_level_alert(
 
     return "\n".join(
         [
-            f"{icono} *{ticker}* {verbo} *{level}* `${level_price}`",
+            f"📍 *[NIVEL]* {icono} *{ticker}* {verbo} *{level}* `${level_price}`",
             f"Precio ahora: `${current}`  ({sesgo})",
-            "_Solo aviso de nivel · tu decides y ejecutas_",
+            "",
+            "⚠️ *Esto NO es una señal de compra.* Es solo un aviso de que el",
+            "precio cruzó una línea clave. Espera una *SEÑAL CALL/PUT* (con",
+            "entrada/stop/objetivo) para tener una operación con ventaja.",
         ]
     )
 
