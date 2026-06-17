@@ -77,27 +77,25 @@ def format_playbook_alert(pb: dict) -> str:
     perseguir si ya se alejó del entry. No es orden automática: tú ejecutas.
     """
     ticker = pb.get("ticker", "?")
-    price = pb.get("current_price")
     verdict = pb.get("verdict", {})
-    head = verdict.get("headline", "")
-    detail = verdict.get("detail", "")
-    ind = pb.get("indicators", {})
-    candle_time = pb.get("candle_time", "?")
+    plan = verdict.get("plan") or {}
+    entry = plan.get("entry")
+    stop = plan.get("stop")
+    target = plan.get("target")
 
-    return "\n".join(
-        [
-            f"⚡ *[INTRADÍA]* *{ticker}* — {head}",
-            f"💵 Precio (última vela {candle_time}): `${price}`",
-            f"VWAP `${ind.get('vwap')}` · EMA9 `${ind.get('ema9')}` · "
-            f"RSI `{ind.get('rsi')}` · Vol x`{ind.get('rel_volume')}`",
-            "",
-            f"🎯 {detail}",
-            "",
-            "⚠️ *El feed va atrasado.* Mira el precio EN VIVO de tu bróker:",
-            "si sigue cerca del plan, entra con límite; si ya se disparó",
-            "lejos, NO lo persigas. Tú decides y ejecutas.",
-        ]
-    )
+    lines = [
+        f"🟢 *COMPRA {ticker}*",
+        f"• Entra cerca de: `${entry}`",
+        f"• Stop (si lo pierde, fuera): `${stop}`",
+    ]
+    if target:
+        lines.append(f"• Objetivo: `${target}`")
+    lines += [
+        "",
+        "⚠️ Mira el precio EN VIVO de tu bróker. Si ya saltó lejos del",
+        "precio de entrada, NO lo persigas. Tú decides y ejecutas.",
+    ]
+    return "\n".join(lines)
 
 
 # --------------------------------------------------------------------------- #

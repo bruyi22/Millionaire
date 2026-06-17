@@ -116,6 +116,8 @@ def intraday_playbook(ticker: str) -> dict:
     just_broke = resistance is None and above_vwap  # nada por encima => sobre máximos
     broke_res = resistance is not None and price >= resistance["price"]
 
+    stop_ref = None  # se fija solo en los veredictos de COMPRAR
+
     if not above_vwap:
         action, head = "SIN SETUP", "⚪ Sin ventaja alcista"
         detail = ("Precio BAJO el VWAP. No hay setup de compra; espera a que "
@@ -144,6 +146,17 @@ def intraday_playbook(ticker: str) -> dict:
         action, head = "SIN SETUP", "⚪ Señales mixtas"
         detail = "Sobre VWAP pero sin confluencia clara. Espera ruptura o reclaim."
 
+    # Plan accionable SOLO cuando hay compra: entrada/stop/objetivo concretos.
+    # (Para los demás veredictos no hay orden que dar, así que plan = None.)
+    plan = None
+    if stop_ref is not None:
+        target = resistance["price"] if resistance else None
+        plan = {
+            "entry": price,                 # entra cerca de aquí (límite, no perseguir)
+            "stop": round(float(stop_ref), 2),
+            "target": target,               # None = sin nivel claro arriba (deja correr)
+        }
+
     last_time = candles[-1]["time"]
     return {
         "ticker": ticker,
@@ -156,6 +169,6 @@ def intraday_playbook(ticker: str) -> dict:
         },
         "levels": {"resistance": resistance, "support": support},
         "checklist": checklist,
-        "verdict": {"action": action, "headline": head, "detail": detail},
+        "verdict": {"action": action, "headline": head, "detail": detail, "plan": plan},
         "note": "Solo soporte de decisión intradía · mira el precio en vivo de tu bróker · tú decides y ejecutas",
     }
