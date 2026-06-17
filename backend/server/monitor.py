@@ -27,7 +27,7 @@ from core.telegram_bot import (
     format_signal_alert,
     send_message,
 )
-from server.signals_log import record_signal
+from server.signals_log import record_playbook_signal, record_signal
 from server.watchlist import get_watchlist
 
 STATE_FILE = Path(__file__).resolve().parent.parent / "data" / "monitor_state.json"
@@ -189,6 +189,10 @@ def _check_playbook(ticker: str, entry: dict, force: bool = False) -> None:
         send_message(format_playbook_alert(pb))
         entry["playbook_last_alert"] = time.time()
         print(f"  ⚡ {ticker}: playbook intradia alertado ({action}).")
+        # Anota la entrada para medir su acierto intradia (verifica el cron).
+        rec = record_playbook_signal(pb)
+        if rec:
+            print(f"     📝 Playbook registrado para seguimiento (id {rec['id']}).")
     except Exception as exc:  # noqa: BLE001
         print(f"     ❌ No se pudo alertar el playbook: {exc}")
 
