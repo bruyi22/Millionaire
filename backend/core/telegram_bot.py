@@ -66,6 +66,41 @@ def format_level_alert(
 
 
 # --------------------------------------------------------------------------- #
+#  Alerta del PLAYBOOK INTRADÍA (momentum 5 min) — respaldo "por si no miro"
+#  OJO: el feed va atrasado; el mensaje obliga a verificar el precio en vivo.
+# --------------------------------------------------------------------------- #
+def format_playbook_alert(pb: dict) -> str:
+    """Aviso de Telegram cuando el playbook intradía marca una entrada accionable.
+
+    Solo se manda para veredictos de COMPRAR (reclaim/ruptura). Como el feed
+    tiene atraso, el mensaje recuerda mirar el precio EN VIVO del bróker y no
+    perseguir si ya se alejó del entry. No es orden automática: tú ejecutas.
+    """
+    ticker = pb.get("ticker", "?")
+    price = pb.get("current_price")
+    verdict = pb.get("verdict", {})
+    head = verdict.get("headline", "")
+    detail = verdict.get("detail", "")
+    ind = pb.get("indicators", {})
+    candle_time = pb.get("candle_time", "?")
+
+    return "\n".join(
+        [
+            f"⚡ *[INTRADÍA]* *{ticker}* — {head}",
+            f"💵 Precio (última vela {candle_time}): `${price}`",
+            f"VWAP `${ind.get('vwap')}` · EMA9 `${ind.get('ema9')}` · "
+            f"RSI `{ind.get('rsi')}` · Vol x`{ind.get('rel_volume')}`",
+            "",
+            f"🎯 {detail}",
+            "",
+            "⚠️ *El feed va atrasado.* Mira el precio EN VIVO de tu bróker:",
+            "si sigue cerca del plan, entra con límite; si ya se disparó",
+            "lejos, NO lo persigas. Tú decides y ejecutas.",
+        ]
+    )
+
+
+# --------------------------------------------------------------------------- #
 #  Alerta DIRECTA de señal CALL / PUT / NO OPERAR  (motor decision_signal)
 #  Es la alerta PRINCIPAL: corta, accionable, 100% determinista (sin IA).
 # --------------------------------------------------------------------------- #

@@ -19,8 +19,14 @@ from zoneinfo import ZoneInfo
 
 from core.intraday import intraday_data
 from core.market_regime import market_regime
+from core.playbook import intraday_playbook
 from core.signal import decision_signal
-from core.telegram_bot import format_level_alert, format_signal_alert, send_message
+from core.telegram_bot import (
+    format_level_alert,
+    format_playbook_alert,
+    format_signal_alert,
+    send_message,
+)
 from server.signals_log import record_signal
 from server.watchlist import get_watchlist
 
@@ -34,6 +40,13 @@ ALERT_COOLDOWN_SECONDS = int(os.getenv("ALERT_COOLDOWN_SECONDS", "900"))
 # Cooldown independiente por NIVEL: si el precio oscila sobre la misma linea no
 # queremos un aviso cada pasada. Configurable via .env (por defecto 30 min).
 LEVEL_ALERT_COOLDOWN = int(os.getenv("LEVEL_ALERT_COOLDOWN", "1800"))
+
+# Cooldown del PLAYBOOK intradia: no repetir el mismo aviso de compra cada
+# pasada. Configurable via .env (por defecto 30 min).
+PLAYBOOK_ALERT_COOLDOWN = int(os.getenv("PLAYBOOK_ALERT_COOLDOWN", "1800"))
+
+# Veredictos del playbook que SI disparan alerta (entradas accionables).
+PLAYBOOK_BUY_ACTIONS = ("COMPRAR (reclaim)", "COMPRAR (ruptura)")
 
 # Escalera de niveles a vigilar (nombre visible -> clave en data["levels"]).
 LADDER_KEYS = [
@@ -139,6 +152,48 @@ def _check_levels(ticker: str, entry: dict, force: bool = False) -> None:
 
 
 # --------------------------------------------------------------------------- #
+#  Playbook INTRADIA de momentum (gratis, sin IA) — respaldo por Telegram
+# --------------------------------------------------------------------------- #
+def _check_playbook(ticker: str, entry: dict, force: bool = False) -> None:
+    """Avisa por Telegram cuando el playbook intradia marca COMPRAR.
+
+    Solo dispara en veredictos accionables (reclaim/ruptura) y solo cuando la
+    accion CAMBIA respecto a la pasada anterior (anti-repeticion), con cooldown
+    propio. El feed va atrasado: el mensaje obliga a verificar el precio en vivo.
+    Muta `entry` con la ultima accion del playbook y el timestamp del aviso.
+    """
+    try:
+        pb = intraday_playbook(ticker)
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ⚠️  {ticker}: no se pudo leer el playbook intradia ({exc}).")
+        return
+
+    action = pb.get("verdict", {}).get("action")
+    prev_action = entry.get("playbook_action")
+    entry["playbook_action"] = action
+
+    if action not in PLAYBOOK_BUY_ACTIONS:
+        return  # ESPERAR / NO PERSEGUIR / SIN SETUP: no se alerta (mirar el panel).
+
+    changed = action != prev_action
+    last = entry.get("playbook_last_alert")
+    elapsed_ok = True
+    if last and not force:
+        elapsed_ok = (time.time() - last) >= PLAYBOOK_ALERT_COOLDOWN
+
+    if not (force or (changed and elapsed_ok)):
+        print(f"  ⏳ {ticker}: playbook '{action}' sin cambio/en cooldown, lo salto.")
+        return
+
+    try:
+        send_message(format_playbook_alert(pb))
+        entry["playbook_last_alert"] = time.time()
+        print(f"  ⚡ {ticker}: playbook intradia alertado ({action}).")
+    except Exception as exc:  # noqa: BLE001
+        print(f"     ❌ No se pudo alertar el playbook: {exc}")
+
+
+# --------------------------------------------------------------------------- #
 #  Una pasada de revision sobre toda la watchlist
 # --------------------------------------------------------------------------- #
 def check_once(force: bool = False) -> None:
@@ -202,6 +257,9 @@ def check_once(force: bool = False) -> None:
 
         # Disparadores de nivel intradia (gratis, independientes de la firma/IA).
         _check_levels(ticker, entry, force=force)
+
+        # Playbook intradia de momentum (gratis): respaldo de compra por Telegram.
+        _check_playbook(ticker, entry, force=force)
 
         # Persistimos SIEMPRE el entry (precio de referencia, cooldowns por nivel).
         state[ticker] = entry
