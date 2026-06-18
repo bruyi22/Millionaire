@@ -12,6 +12,8 @@ Docs interactivas: http://127.0.0.1:8000/docs
 
 from __future__ import annotations
 
+import os
+import secrets
 from dataclasses import asdict
 
 from dotenv import load_dotenv
@@ -33,6 +35,7 @@ from core.playbook import intraday_playbook  # noqa: E402
 from core.ranking import opportunity_ranking  # noqa: E402
 from core.signal import decision_signal  # noqa: E402
 from server import journal, signals_log, watchlist  # noqa: E402
+from server.monitor import check_once, is_market_open  # noqa: E402
 
 app = FastAPI(title="Millionaire API", version="0.3.0")
 
@@ -138,6 +141,38 @@ def playbook(ticker: str):
         return intraday_playbook(ticker)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+# --------------------------------------------------------------------------- #
+#  Tick del monitor (lo dispara un cron EXTERNO fiable, p.ej. cron-job.org)
+#  GitHub Actions descarta los schedules de alta frecuencia, así que el reloj
+#  intradía vive fuera y golpea aquí cada pocos minutos. NO ejecuta órdenes:
+#  solo corre una pasada del monitor (que puede mandar alertas a Telegram).
+# --------------------------------------------------------------------------- #
+@app.get("/monitor/tick")
+@app.post("/monitor/tick")
+def monitor_tick(key: str = "", force: bool = False):
+    """Corre UNA pasada del monitor. Protegido por clave (env MONITOR_TICK_KEY).
+
+    - `key`: debe coincidir con MONITOR_TICK_KEY, si no, 403.
+    - `force=true`: ignora el horario y fuerza alertas (solo para pruebas).
+    Fuera de horario de mercado no hace nada (salvo force), para no gastar.
+    """
+    expected = os.getenv("MONITOR_TICK_KEY", "")
+    if not expected:
+        raise HTTPException(status_code=503, detail="MONITOR_TICK_KEY no configurada en el servidor.")
+    if not secrets.compare_digest(key, expected):
+        raise HTTPException(status_code=403, detail="Clave inválida.")
+
+    market_open = is_market_open()
+    if not market_open and not force:
+        return {"ran": False, "market_open": False, "note": "mercado cerrado; no se hizo nada."}
+
+    try:
+        check_once(force=force)
+    except Exception as exc:  # noqa: BLE001  (no tumbar el endpoint por un fallo de datos)
+        raise HTTPException(status_code=500, detail=f"Fallo en la pasada del monitor: {exc}") from exc
+    return {"ran": True, "market_open": market_open, "forced": force}
 
 
 @app.get("/watchlist")
