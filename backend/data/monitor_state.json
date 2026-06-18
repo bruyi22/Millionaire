@@ -23,13 +23,13 @@
   "NVDA": {
     "signature": "NO OPERAR",
     "last_alert": 1781738238.921445,
-    "intra_price": 210.51,
+    "intra_price": 210.0,
     "level_alerts": {
       "r2": 1781569154.1816764,
       "r1": 1781800628.6803675,
       "pivot": 1781800628.6803675,
       "s1": 1781723484.3723989
     },
-    "playbook_action": "ESPERAR RUPTURA"
+    "playbook_action": "SIN SETUP"
   }
 }
