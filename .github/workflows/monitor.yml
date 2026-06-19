@@ -5,14 +5,13 @@ name: Monitor de mercado (alertas Telegram)
 # GitHub. El propio script (is_market_open, en hora de Nueva York) filtra con
 # precisión 9:30-16:00 ET; el rango UTC de abajo solo acota para no malgastar.
 on:
-  schedule:
-    # GitHub usa UTC. El mercado (9:30-16:00 ET) cae en 13:30-20:00 UTC (verano,
-    # EDT) o 14:30-21:00 UTC (invierno, EST). Corremos 13:00-20:59 UTC L-V; el
-    # script descarta lo que quede fuera de 9:30-16:00 ET en cada caso.
-    # Repo PÚBLICO => minutos de Actions ilimitados, así que vamos cada 3 min
-    # (en vez de 10) para reaccionar antes. El programador de GitHub igual tiene
-    # algo de jitter; el atraso del feed (~15 min) sigue siendo el piso real.
-    - cron: "*/3 13-20 * * 1-5"
+  # SCHEDULE DESACTIVADO. GitHub descarta los crons de alta frecuencia (corría
+  # ~3x/día, inservible para intradía). El reloj intradía ahora vive fuera, en
+  # cron-job.org, que golpea /monitor/tick en Render cada 2 min de forma fiable.
+  # Dejamos solo el disparo MANUAL por si alguna vez hace falta correrlo a mano.
+  # (Para reactivar el schedule, descomentá las dos líneas de abajo.)
+  # schedule:
+  #   - cron: "*/3 13-20 * * 1-5"
   workflow_dispatch:      # botón para lanzarlo a mano desde la pestaña "Actions"
     inputs:
       forzar:
